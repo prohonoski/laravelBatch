@@ -1,3 +1,6 @@
+# Custom ESCAPE "\" for pgsql
+Remove double "\" from pgsql update query
+
 # Laravel BATCH (BULK)
 
 Insert and update batch (bulk) in laravel
