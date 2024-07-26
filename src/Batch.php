@@ -103,7 +103,13 @@ class Batch implements BatchInterface
                         }
                     } else {
                         // Only update
-                        $finalField = $raw ? Common::mysql_escape($val[$field]) : "'" . Common::mysql_escape($val[$field]) . "'";
+
+                        // proho
+                        if (Common::disableBacktick($driver)) 
+                            $finalField = $raw ? $val[$field] : "'" . $val[$field] . "'";
+                        else 
+                            $finalField = $raw ? Common::mysql_escape($val[$field]) : "'" . Common::mysql_escape($val[$field]) . "'";
+
                         $value = (is_null($val[$field]) ? 'NULL' : $finalField);
                     }
 
