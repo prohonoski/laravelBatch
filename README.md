@@ -1,5 +1,5 @@
-# Custom ESCAPE "\" for pgsql
-Remove double "\" from pgsql update query
+# Custom ESCAPE "\\" for pgsql
+Remove double "\\" from pgsql update query
 
 # Laravel BATCH (BULK)
 
