@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace Mavinoo\Batch;
+namespace Proho\Batch;
 
-use Mavinoo\Batch\Common\Common;
+use Proho\Batch\Common\Common;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Carbon;
@@ -53,8 +53,12 @@ class Batch implements BatchInterface
      * @createdBy Mohammad Ghanbari <mavin.developer@gmail.com>
      * @updatedBy Ibrahim Sakr <ebrahimes@gmail.com>
      */
-    public function update(Model $table, array $values, string $index = null, bool $raw = false)
-    {
+    public function update(
+        Model $table,
+        array $values,
+        string $index = null,
+        bool $raw = false,
+    ) {
         $final = [];
         $ids = [];
 
@@ -75,75 +79,150 @@ class Batch implements BatchInterface
                 $updatedAtColumn = $table->getUpdatedAtColumn();
 
                 if (!isset($val[$updatedAtColumn])) {
-                    $val[$updatedAtColumn] = Carbon::now()->format($table->getDateFormat());
+                    $val[$updatedAtColumn] = Carbon::now()->format(
+                        $table->getDateFormat(),
+                    );
                 }
             }
 
             foreach (array_keys($val) as $field) {
                 if ($field !== $index) {
                     // If increment / decrement
-                    if (gettype($val[$field]) == 'array') {
+                    if (gettype($val[$field]) == "array") {
                         // If array has two values
-                        if (!array_key_exists(0, $val[$field]) || !array_key_exists(1, $val[$field])) {
-                            throw new \ArgumentCountError('Increment/Decrement array needs to have 2 values, a math operator (+, -, *, /, %) and a number');
+                        if (
+                            !array_key_exists(0, $val[$field]) ||
+                            !array_key_exists(1, $val[$field])
+                        ) {
+                            throw new \ArgumentCountError(
+                                "Increment/Decrement array needs to have 2 values, a math operator (+, -, *, /, %) and a number",
+                            );
                         }
                         // Check first value
-                        if (gettype($val[$field][0]) != 'string' || !in_array($val[$field][0], ['+', '-', '*', '/', '%'])) {
-                            throw new \TypeError('First value in Increment/Decrement array needs to be a string and a math operator (+, -, *, /, %)');
+                        if (
+                            gettype($val[$field][0]) != "string" ||
+                            !in_array($val[$field][0], [
+                                "+",
+                                "-",
+                                "*",
+                                "/",
+                                "%",
+                            ])
+                        ) {
+                            throw new \TypeError(
+                                "First value in Increment/Decrement array needs to be a string and a math operator (+, -, *, /, %)",
+                            );
                         }
                         // Check second value
                         if (!is_numeric($val[$field][1])) {
-                            throw new \TypeError('Second value in Increment/Decrement array needs to be numeric');
+                            throw new \TypeError(
+                                "Second value in Increment/Decrement array needs to be numeric",
+                            );
                         }
                         // Increment / decrement
                         if (Common::disableBacktick($driver)) {
                             $value = $field . $val[$field][0] . $val[$field][1];
                         } else {
-                            $value = '`' . $field . '`' . $val[$field][0] . $val[$field][1];
+                            $value =
+                                "`" .
+                                $field .
+                                "`" .
+                                $val[$field][0] .
+                                $val[$field][1];
                         }
                     } else {
                         // Only update
 
                         // proho
-                        if (Common::disableBacktick($driver)) 
-                            $finalField = $raw ? $val[$field] : "'" . $val[$field] . "'";
-                        else 
-                            $finalField = $raw ? Common::mysql_escape($val[$field]) : "'" . Common::mysql_escape($val[$field]) . "'";
+                        if (Common::disableBacktick($driver)) {
+                            $finalField = $raw
+                                ? $val[$field]
+                                : "'" . $val[$field] . "'";
+                        } else {
+                            $finalField = $raw
+                                ? Common::mysql_escape($val[$field])
+                                : "'" .
+                                    Common::mysql_escape($val[$field]) .
+                                    "'";
+                        }
 
-                        $value = (is_null($val[$field]) ? 'NULL' : $finalField);
+                        $value = is_null($val[$field]) ? "NULL" : $finalField;
                     }
 
-                    if (Common::disableBacktick($driver))
-                        $final[$field][] = 'WHEN ' . $index . ' = \'' . $val[$index] . '\' THEN ' . $value . ' ';
-                    else
-                        $final[$field][] = 'WHEN `' . $index . '` = \'' . $val[$index] . '\' THEN ' . $value . ' ';
+                    if (Common::disableBacktick($driver)) {
+                        $final[$field][] =
+                            "WHEN " .
+                            $index .
+                            ' = \'' .
+                            $val[$index] .
+                            '\' THEN ' .
+                            $value .
+                            " ";
+                    } else {
+                        $final[$field][] =
+                            "WHEN `" .
+                            $index .
+                            '` = \'' .
+                            $val[$index] .
+                            '\' THEN ' .
+                            $value .
+                            " ";
+                    }
                 }
             }
         }
 
         if (Common::disableBacktick($driver)) {
-
-            $cases = '';
+            $cases = "";
             foreach ($final as $k => $v) {
-                $cases .= '"' . $k . '" = (CASE ' . implode("\n", $v) . "\n"
-                        . 'ELSE "' . $k . '" END), ';
+                $cases .=
+                    '"' .
+                    $k .
+                    '" = (CASE ' .
+                    implode("\n", $v) .
+                    "\n" .
+                    'ELSE "' .
+                    $k .
+                    '" END), ';
             }
 
-            $query = "UPDATE \"" . $this->getFullTableName($table) . '" SET ' . substr($cases, 0, -2) . " WHERE \"$index\" IN('" . implode("','", $ids) . "');";
-
+            $query =
+                "UPDATE \"" .
+                $this->getFullTableName($table) .
+                '" SET ' .
+                substr($cases, 0, -2) .
+                " WHERE \"$index\" IN('" .
+                implode("','", $ids) .
+                "');";
         } else {
-
-            $cases = '';
+            $cases = "";
             foreach ($final as $k => $v) {
-                $cases .= '`' . $k . '` = (CASE ' . implode("\n", $v) . "\n"
-                        . 'ELSE `' . $k . '` END), ';
+                $cases .=
+                    "`" .
+                    $k .
+                    "` = (CASE " .
+                    implode("\n", $v) .
+                    "\n" .
+                    "ELSE `" .
+                    $k .
+                    "` END), ";
             }
 
-            $query = "UPDATE `" . $this->getFullTableName($table) . "` SET " . substr($cases, 0, -2) . " WHERE `$index` IN(" . '"' . implode('","', $ids) . '"' . ");";
-
+            $query =
+                "UPDATE `" .
+                $this->getFullTableName($table) .
+                "` SET " .
+                substr($cases, 0, -2) .
+                " WHERE `$index` IN(" .
+                '"' .
+                implode('","', $ids) .
+                '"' .
+                ");";
         }
 
-        return $this->db->connection($this->getConnectionName($table))->update($query);
+        return $this->db
+            ->connection($this->getConnectionName($table))
+            ->update($query);
     }
 
     /**
@@ -176,8 +255,13 @@ class Batch implements BatchInterface
      * $index2 = 'user_id';
      *
      */
-    public function updateWithTwoIndex(Model $table, array $values, string $index = null, string $index2 = null, bool $raw = false)
-    {
+    public function updateWithTwoIndex(
+        Model $table,
+        array $values,
+        string $index = null,
+        string $index2 = null,
+        bool $raw = false,
+    ) {
         $final = [];
         $ids = [];
         $driver = $table->getConnection()->getDriverName();
@@ -195,38 +279,99 @@ class Batch implements BatchInterface
             $ids2[] = $val[$index2];
             foreach (array_keys($val) as $field) {
                 if ($field !== $index || $field !== $index2) {
-                    $finalField = $raw ? Common::mysql_escape($val[$field]) : "'" . Common::mysql_escape($val[$field]) . "'";
-                    $value = (is_null($val[$field]) ? 'NULL' : $finalField);
+                    $finalField = $raw
+                        ? Common::mysql_escape($val[$field])
+                        : "'" . Common::mysql_escape($val[$field]) . "'";
+                    $value = is_null($val[$field]) ? "NULL" : $finalField;
 
                     if (Common::disableBacktick($driver)) {
-                        $final[$field][] = 'WHEN (' . $index . ' = \'' . Common::mysql_escape($val[$index]) . '\' AND ' . $index2 . ' = \'' . $val[$index2] . '\') THEN ' . $value . ' ';
+                        $final[$field][] =
+                            "WHEN (" .
+                            $index .
+                            ' = \'' .
+                            Common::mysql_escape($val[$index]) .
+                            '\' AND ' .
+                            $index2 .
+                            ' = \'' .
+                            $val[$index2] .
+                            '\') THEN ' .
+                            $value .
+                            " ";
                     } else {
-                        $final[$field][] = 'WHEN (`' . $index . '` = "' . Common::mysql_escape($val[$index]) . '" AND `' . $index2 . '` = "' . $val[$index2] . '") THEN ' . $value . ' ';
+                        $final[$field][] =
+                            "WHEN (`" .
+                            $index .
+                            '` = "' .
+                            Common::mysql_escape($val[$index]) .
+                            '" AND `' .
+                            $index2 .
+                            '` = "' .
+                            $val[$index2] .
+                            '") THEN ' .
+                            $value .
+                            " ";
                     }
                 }
             }
         }
 
-
         if (Common::disableBacktick($driver)) {
-            $cases = '';
+            $cases = "";
             foreach ($final as $k => $v) {
-                $cases .= '"' . $k . '" = (CASE ' . implode("\n", $v) . "\n"
-                        . 'ELSE "' . $k . '" END), ';
+                $cases .=
+                    '"' .
+                    $k .
+                    '" = (CASE ' .
+                    implode("\n", $v) .
+                    "\n" .
+                    'ELSE "' .
+                    $k .
+                    '" END), ';
             }
 
-            $query = "UPDATE \"" . $this->getFullTableName($table) . '" SET ' . substr($cases, 0, -2) . " WHERE \"$index\" IN('" . implode("','", $ids) . "') AND \"$index2\" IN('" . implode("','", $ids2) . "');";
+            $query =
+                "UPDATE \"" .
+                $this->getFullTableName($table) .
+                '" SET ' .
+                substr($cases, 0, -2) .
+                " WHERE \"$index\" IN('" .
+                implode("','", $ids) .
+                "') AND \"$index2\" IN('" .
+                implode("','", $ids2) .
+                "');";
             //$query = "UPDATE \"" . $this->getFullTableName($table) . "\" SET " . substr($cases, 0, -2) . " WHERE \"$index\" IN(" . '"' . implode('","', $ids) . '")' . " AND \"$index2\" IN(" . '"' . implode('","', $ids2) . '"' . " );";
         } else {
-            $cases = '';
+            $cases = "";
             foreach ($final as $k => $v) {
-                $cases .= '`' . $k . '` = (CASE ' . implode("\n", $v) . "\n"
-                        . 'ELSE `' . $k . '` END), ';
+                $cases .=
+                    "`" .
+                    $k .
+                    "` = (CASE " .
+                    implode("\n", $v) .
+                    "\n" .
+                    "ELSE `" .
+                    $k .
+                    "` END), ";
             }
-            $query = "UPDATE `" . $this->getFullTableName($table) . "` SET " . substr($cases, 0, -2) . " WHERE `$index` IN(" . '"' . implode('","', $ids) . '")' . " AND `$index2` IN(" . '"' . implode('","', $ids2) . '"' . " );";
+            $query =
+                "UPDATE `" .
+                $this->getFullTableName($table) .
+                "` SET " .
+                substr($cases, 0, -2) .
+                " WHERE `$index` IN(" .
+                '"' .
+                implode('","', $ids) .
+                '")' .
+                " AND `$index2` IN(" .
+                '"' .
+                implode('","', $ids2) .
+                '"' .
+                " );";
         }
 
-        return $this->db->connection($this->getConnectionName($table))->update($query);
+        return $this->db
+            ->connection($this->getConnectionName($table))
+            ->update($query);
     }
 
     /**
@@ -266,13 +411,17 @@ class Batch implements BatchInterface
      * $keyName = 'id';
      *
      */
-    public function updateMultipleCondition(Model $table, array $arrays, string $keyName = null, bool $raw = false)
-    {
+    public function updateMultipleCondition(
+        Model $table,
+        array $arrays,
+        string $keyName = null,
+        bool $raw = false,
+    ) {
         $driver = $table->getConnection()->getDriverName();
         $connectionName = $this->getConnectionName($table);
         $tableName = $this->getFullTableName($table);
         $timestamp = $table->usesTimestamps();
-        $backtick = Common::disableBacktick($driver) ? '`' : '';
+        $backtick = Common::disableBacktick($driver) ? "`" : "";
 
         if (!count($arrays)) {
             return false;
@@ -285,13 +434,18 @@ class Batch implements BatchInterface
         $columns = [];
         $conditionMaster = [];
         foreach ($arrays as $array) {
-            foreach ($array['conditions'] as $keyCondition => $condition) {
-                if ($keyName == $keyCondition and !in_array($condition, $conditionMaster)) {
-                    $conditionMaster[] = str(Common::mysql_escape($condition))->toString();
+            foreach ($array["conditions"] as $keyCondition => $condition) {
+                if (
+                    $keyName == $keyCondition and
+                    !in_array($condition, $conditionMaster)
+                ) {
+                    $conditionMaster[] = str(
+                        Common::mysql_escape($condition),
+                    )->toString();
                 }
             }
             foreach ($array as $key => $item) {
-                if ($key == 'columns') {
+                if ($key == "columns") {
                     foreach ($item as $k => $value) {
                         if (!in_array($key, $columns)) {
                             $columns[$k] = $k;
@@ -304,21 +458,27 @@ class Batch implements BatchInterface
         $arraysNew = [];
         $keys = array_keys($columns);
         foreach ($keys as $key) {
-            $arraysMixed = collect($arrays)->filter(function ($rows) use ($key) {
-                return in_array($key, array_keys($rows['columns']));
+            $arraysMixed = collect($arrays)->filter(function ($rows) use (
+                $key,
+            ) {
+                return in_array($key, array_keys($rows["columns"]));
             });
 
             foreach ($arraysMixed as $item) {
-                $value = $raw ? Common::mysql_escape($item['columns'][$key]) : "'" . Common::mysql_escape($item['columns'][$key]) . "'";
+                $value = $raw
+                    ? Common::mysql_escape($item["columns"][$key])
+                    : "'" . Common::mysql_escape($item["columns"][$key]) . "'";
                 $arraysNew[$key][] = [
-                        'conditions' => $item['conditions'],
-                        'value'      => is_null($item['columns'][$key]) ? "NULL" : $value,
+                    "conditions" => $item["conditions"],
+                    "value" => is_null($item["columns"][$key])
+                        ? "NULL"
+                        : $value,
                 ];
 
                 if ($timestamp) {
-                    $arraysNew['updated_at'][] = [
-                            'conditions' => $item['conditions'],
-                            'value'      => "'".(now())."'",
+                    $arraysNew["updated_at"][] = [
+                        "conditions" => $item["conditions"],
+                        "value" => "'" . now() . "'",
                     ];
                 }
             }
@@ -328,22 +488,22 @@ class Batch implements BatchInterface
         foreach ($arraysNew as $key => $items) {
             $caseSql = "{$backtick}{$key}{$backtick} = (CASE ";
             foreach ($items as $item) {
-                $conditions = $item['conditions'];
-                $value = $item['value'];
+                $conditions = $item["conditions"];
+                $value = $item["value"];
 
                 $conditionContext = [];
                 foreach ($conditions as $conditionKey => $condition) {
                     $conditionContext[] = " {$backtick}{$conditionKey}{$backtick} = '{$condition}' ";
                 }
 
-                $conditionContext = join(' and ', $conditionContext);
+                $conditionContext = join(" and ", $conditionContext);
                 $caseSql .= " WHEN $conditionContext THEN {$value} ";
             }
             $caseSql .= " ELSE {$backtick}{$key}{$backtick} END)";
             $cases[] = $caseSql;
         }
-        $caseSql = join(', ', $cases);
-        $conditionMaster = join(', ', $conditionMaster);
+        $caseSql = join(", ", $cases);
+        $conditionMaster = join(", ", $conditionMaster);
 
         $query = "update {$backtick}{$tableName}{$backtick} set {$caseSql} where {$backtick}{$keyName}{$backtick} in ({$conditionMaster})";
 
@@ -398,8 +558,13 @@ class Batch implements BatchInterface
      * ];
      * $batchSize = 500; // insert 500 (default), 100 minimum rows in one query
      */
-    public function insert(Model $table, array $columns, array $values, int $batchSize = 500, bool $insertIgnore = false)
-    {
+    public function insert(
+        Model $table,
+        array $columns,
+        array $values,
+        int $batchSize = 500,
+        bool $insertIgnore = false,
+    ) {
         // no need for the old validation since we now use type hint that supports from php 7.0
         // but I kept this one
         if (count($columns) !== count(current($values))) {
@@ -410,9 +575,13 @@ class Batch implements BatchInterface
         $minChunck = 100;
 
         $totalValues = count($values);
-        $batchSizeInsert = ($totalValues < $batchSize && $batchSize < $minChunck) ? $minChunck : $batchSize;
+        $batchSizeInsert =
+            $totalValues < $batchSize && $batchSize < $minChunck
+                ? $minChunck
+                : $batchSize;
 
-        $totalChunk = ($batchSizeInsert < $minChunck) ? $minChunck : $batchSizeInsert;
+        $totalChunk =
+            $batchSizeInsert < $minChunck ? $minChunck : $batchSizeInsert;
 
         $values = array_chunk($values, $totalChunk, true);
 
@@ -455,7 +624,7 @@ class Batch implements BatchInterface
             }
         } else {
             foreach ($columns as $key => $column) {
-                $columns[$key] = '`' . Common::mysql_escape($column) . '`';
+                $columns[$key] = "`" . Common::mysql_escape($column) . "`";
             }
         }
 
@@ -463,35 +632,60 @@ class Batch implements BatchInterface
             $valueArray = [];
             foreach ($value as $data) {
                 foreach ($data as $key => $item) {
-                    $item = is_null($item) ? 'NULL' : "'" . Common::mysql_escape($item) . "'";
+                    $item = is_null($item)
+                        ? "NULL"
+                        : "'" . Common::mysql_escape($item) . "'";
                     $data[$key] = $item;
                 }
 
-                $valueArray[] = '(' . implode(',', $data) . ')';
+                $valueArray[] = "(" . implode(",", $data) . ")";
             }
 
-            $valueString = implode(', ', $valueArray);
+            $valueString = implode(", ", $valueArray);
 
-            $ignoreStmt = $insertIgnore ? ' IGNORE ' : '';
+            $ignoreStmt = $insertIgnore ? " IGNORE " : "";
 
             if (Common::disableBacktick($driver)) {
-                $query[] = 'INSERT ' . $ignoreStmt . ' INTO "' . $this->getFullTableName($table) . '" (' . implode(',', $columns) . ") VALUES $valueString;";
+                $query[] =
+                    "INSERT " .
+                    $ignoreStmt .
+                    ' INTO "' .
+                    $this->getFullTableName($table) .
+                    '" (' .
+                    implode(",", $columns) .
+                    ") VALUES $valueString;";
             } else {
-                $query[] = 'INSERT ' . $ignoreStmt . ' INTO `' . $this->getFullTableName($table) . '` (' . implode(',', $columns) . ") VALUES $valueString;";
+                $query[] =
+                    "INSERT " .
+                    $ignoreStmt .
+                    " INTO `" .
+                    $this->getFullTableName($table) .
+                    "` (" .
+                    implode(",", $columns) .
+                    ") VALUES $valueString;";
             }
         }
 
         if (count($query)) {
-            return $this->db->transaction(function () use ($totalValues, $totalChunk, $query, $table) {
+            return $this->db->transaction(function () use (
+                $totalValues,
+                $totalChunk,
+                $query,
+                $table,
+            ) {
                 $totalQuery = 0;
                 foreach ($query as $value) {
-                    $totalQuery += $this->db->connection($this->getConnectionName($table))->statement($value) ? 1 : 0;
+                    $totalQuery += $this->db
+                        ->connection($this->getConnectionName($table))
+                        ->statement($value)
+                        ? 1
+                        : 0;
                 }
 
                 return [
-                        'totalRows' => $totalValues,
-                        'totalBatch' => $totalChunk,
-                        'totalQuery' => $totalQuery
+                    "totalRows" => $totalValues,
+                    "totalBatch" => $totalChunk,
+                    "totalQuery" => $totalQuery,
                 ];
             });
         }

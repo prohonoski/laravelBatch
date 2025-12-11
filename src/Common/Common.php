@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Mavinoo\Batch\Common;
+namespace Proho\Batch\Common;
 
 class Common
 {
@@ -17,7 +17,7 @@ class Common
         }
 
         if (is_bool($fieldValue)) {
-            return (int)$fieldValue;
+            return (int) $fieldValue;
         }
 
         if (self::is_json($fieldValue)) {
@@ -26,9 +26,9 @@ class Common
 
         if (!empty($fieldValue) && is_string($fieldValue)) {
             return str_replace(
-                ['\\', "\0", "\n", "\r", "'", '"', "\x1a"],
-                ['\\\\', '\\0', '\\n', '\\r', "\\'", '\\"', '\\Z'],
-                $fieldValue
+                ["\\", "\0", "\n", "\r", "'", '"', "\x1a"],
+                ["\\\\", '\\0', '\\n', '\\r', "\\'", '\\"', "\\Z"],
+                $fieldValue,
             );
         }
 
@@ -43,21 +43,17 @@ class Common
      */
     public static function disableBacktick($drive)
     {
-        return in_array($drive, ['pgsql', 'sqlsrv']);
+        return in_array($drive, ["pgsql", "sqlsrv"]);
     }
 
     protected static function safeJsonString($fieldValue)
     {
-        return str_replace(
-            ["'"],
-            ["''"],
-            $fieldValue
-        );
+        return str_replace(["'"], ["''"], $fieldValue);
     }
 
     protected static function is_json($str): bool
     {
-        if (!is_string($str)  || is_numeric($str)) {
+        if (!is_string($str) || is_numeric($str)) {
             return false;
         }
         $json = json_decode($str);
@@ -66,8 +62,8 @@ class Common
 
     protected static function safeJson($jsonData, $asArray = false)
     {
-        if ($jsonData === '{}') {
-            return $asArray ? [] : '{}';
+        if ($jsonData === "{}") {
+            return $asArray ? [] : "{}";
         }
 
         $jsonData = json_decode($jsonData, true);
@@ -90,7 +86,8 @@ class Common
             }
         }
 
-        return $asArray ? $safeJsonData : json_encode($safeJsonData, JSON_UNESCAPED_UNICODE);
+        return $asArray
+            ? $safeJsonData
+            : json_encode($safeJsonData, JSON_UNESCAPED_UNICODE);
     }
-
 }

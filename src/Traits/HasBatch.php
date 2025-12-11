@@ -1,8 +1,8 @@
 <?php declare(strict_types=1);
 
-namespace Mavinoo\Batch\Traits;
+namespace Proho\Batch\Traits;
 
-use Mavinoo\Batch\Batch;
+use Proho\Batch\Batch;
 
 trait HasBatch
 {
@@ -38,9 +38,12 @@ trait HasBatch
      * @param  bool  $raw
      * @return bool|int
      */
-    public static function batchUpdate(array $values, string $index = null, bool $raw = false)
-    {
-        return app(Batch::class)->update(new static, $values, $index, $raw);
+    public static function batchUpdate(
+        array $values,
+        string $index = null,
+        bool $raw = false,
+    ) {
+        return app(Batch::class)->update(new static(), $values, $index, $raw);
     }
 
     /**
@@ -91,8 +94,18 @@ trait HasBatch
      * @param  bool  $insertIgnore
      * @return bool|array
      */
-    public static function batchInsert(array $columns, array $values, int $batchSize = 500, bool $insertIgnore = false)
-    {
-        return app(Batch::class)->insert(new static, $columns, $values, $batchSize, $insertIgnore);
+    public static function batchInsert(
+        array $columns,
+        array $values,
+        int $batchSize = 500,
+        bool $insertIgnore = false,
+    ) {
+        return app(Batch::class)->insert(
+            new static(),
+            $columns,
+            $values,
+            $batchSize,
+            $insertIgnore,
+        );
     }
 }

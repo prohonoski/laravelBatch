@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-if (!function_exists('batch')) {
+if (!function_exists("batch")) {
     /**
      * Batch helper to get Mavino\Batch\Batch instance.
      *
@@ -8,6 +8,6 @@ if (!function_exists('batch')) {
      */
     function batch()
     {
-        return app('Mavinoo\Batch\Batch');
+        return app("Proho\Batch\Batch");
     }
 }

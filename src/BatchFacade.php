@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Mavinoo\Batch;
+namespace Proho\Batch;
 
 use Illuminate\Support\Facades\Facade;
 
@@ -13,6 +13,6 @@ class BatchFacade extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return 'Batch';
+        return "Batch";
     }
 }

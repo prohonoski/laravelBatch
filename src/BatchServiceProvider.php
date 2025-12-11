@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Mavinoo\Batch;
+namespace Proho\Batch;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Database\DatabaseManager;
@@ -14,7 +14,7 @@ class BatchServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind('Batch', function ($app) {
+        $this->app->bind("Batch", function ($app) {
             return new Batch($app->make(DatabaseManager::class));
         });
     }
